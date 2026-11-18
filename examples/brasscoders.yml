@@ -1,0 +1,17 @@
+# Minimal consumer workflow — drop into .github/workflows/ of any repo.
+name: BrassCoders
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: CopperSunDev/brasscoders-action@v1
+        # with:
+        #   fail-on-critical: 'true'   # make it a blocking gate
+        #   path: src                  # scan a subdirectory
+        #   version: '==2.1.0'         # pin a release

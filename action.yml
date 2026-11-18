@@ -1,0 +1,71 @@
+name: 'BrassCoders Scan'
+description: 'Run the BrassCoders deterministic bug scanner on your code in CI and publish the findings as an artifact — local, no code sent to an API.'
+author: 'Copper Sun'
+
+branding:
+  icon: 'shield'
+  color: 'orange'
+
+inputs:
+  path:
+    description: 'Path to scan.'
+    required: false
+    default: '.'
+  python-version:
+    description: 'Python version to set up before installing BrassCoders.'
+    required: false
+    default: '3.13'
+  version:
+    description: 'pip version spec suffix for brasscoders, e.g. "==2.1.0". Empty installs the latest release.'
+    required: false
+    default: ''
+  fail-on-critical:
+    description: 'When "true", the job fails if any critical finding is reported. Default "false" (advisory: the uploaded findings artifact is the deliverable).'
+    required: false
+    default: 'false'
+  upload-artifact:
+    description: 'When "true", upload the .brass/ findings directory as a build artifact.'
+    required: false
+    default: 'true'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ inputs.python-version }}
+
+    - name: Install BrassCoders
+      shell: bash
+      run: pip install "brasscoders${{ inputs.version }}"
+
+    - name: Restore BrassCoders cache
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cache/brass/pysa-state
+          ~/.cache/brass/typeshed
+        key: brass-${{ runner.os }}-${{ hashFiles('**/pyproject.toml', '**/requirements*.txt') }}
+        restore-keys: |
+          brass-${{ runner.os }}-
+
+    - name: Run BrassCoders
+      shell: bash
+      env:
+        # First run on a fresh cache key clones typeshed; the one network call --offline allows.
+        BRASS_AUTOFETCH_TYPESHED: '1'
+      run: |
+        if [ "${{ inputs.fail-on-critical }}" = "true" ]; then
+          brasscoders --offline scan --fail-on-critical "${{ inputs.path }}"
+        else
+          brasscoders --offline scan "${{ inputs.path }}" || true
+        fi
+
+    - name: Upload findings
+      if: ${{ always() && inputs.upload-artifact == 'true' }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: brasscoders-findings
+        path: .brass/
+        retention-days: 14
