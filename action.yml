@@ -1,5 +1,5 @@
 name: 'BrassCoders Scan'
-description: 'Run the BrassCoders deterministic bug scanner on your code in CI and publish the findings as an artifact — local, no code sent to an API.'
+description: 'Run the BrassCoders deterministic local bug scanner in CI; publishes findings as an artifact. No code sent to an API.'
 author: 'Copper Sun'
 
 branding:
